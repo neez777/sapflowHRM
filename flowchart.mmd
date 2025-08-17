@@ -1,0 +1,72 @@
+graph TD
+    A["Raw ICT Data Logger<br/>Temperature Readings"] --> B{"Data Quality Check"}
+    B -->|Failed| B1["Data Cleaning<br/>Remove outliers<br/>Gap filling"]
+    B1 --> B
+    B -->|Passed| C["DATABASE TABLE 1:<br/>Raw Temperature Data<br/>T1_up, T1_down, T2_up, T2_down<br/>Timestamps, Sensor ID"]
+    
+    C --> D["Pre-processing Module"]
+    D --> E["Calculate Heat Pulse Velocities<br/>v1 = k/t1 × ln T1_down/T1_up<br/>v2 = k/t2 × ln T2_down/T2_up"]
+    E --> F["DATABASE TABLE 2:<br/>Heat Pulse Velocities<br/>v1, v2, timestamps"]
+    
+    F --> G["Parameter Input Module"]
+    G --> H["Physical Parameters:<br/>- Probe spacing x1, x2<br/>- Thermal diffusivity α<br/>- Wood properties<br/>- Sensor geometry"]
+    
+    H --> I["Wound Correction Module"]
+    I --> J["Apply Wound Width Corrections<br/>Effective probe spacing<br/>x1_eff = x1 - wound_width<br/>x2_eff = x2 - wound_width"]
+    J --> K["DATABASE TABLE 3:<br/>Corrected Parameters<br/>x1_eff, x2_eff, α_corrected"]
+    
+    K --> L["Heat Ratio Calculation Module"]
+    L --> M["Calculate Heat Ratio<br/>HR = T1_down/T1_up ÷ T2_down/T2_up"]
+    M --> N["Calculate Sap Velocity<br/>vs = α/Δx × ln HR<br/>where Δx = x2_eff - x1_eff"]
+    
+    N --> O["DATABASE TABLE 4:<br/>Intermediate Calculations<br/>Heat Ratios, Sap Velocities"]
+    
+    O --> P{"Method Selection"}
+    P -->|Standard HRM| Q["Standard Heat Ratio Method<br/>Apply corrections for:<br/>- Zero flow conditions<br/>- Bidirectional flow"]
+    P -->|Tmax Method| R["T-max Method<br/>Use maximum temperature<br/>timing approach"]
+    P -->|Maximum HR| S["Maximum Heat Ratio<br/>Use peak heat ratio<br/>for low/high flows"]
+    
+    Q --> T["Calculate Sap Flux Density<br/>Fd = vs × ρw × Cw / ρs × Cs<br/>where ρw,Cw = water properties<br/>ρs,Cs = sapwood properties"]
+    R --> T
+    S --> T
+    
+    T --> U["DATABASE TABLE 5:<br/>Sap Flux Density<br/>Fd in cm³/cm²/h"]
+    
+    U --> V["Wood Property Module"]
+    V --> W["Apply Wood-specific Corrections:<br/>- Sapwood area As<br/>- Radial variation<br/>- Azimuthal variation"]
+    
+    W --> X["Calculate Sap Flow Rate<br/>Flow = Fd × As × correction_factors<br/>in L/h or kg/h"]
+    
+    X --> Y["DATABASE TABLE 6:<br/>Final Sap Flow<br/>Flow rates, QC flags"]
+    
+    Y --> Z["Quality Control Module"]
+    Z --> AA["Apply QC Filters:<br/>- Physical limits<br/>- Temporal consistency<br/>- Environmental correlation"]
+    
+    AA --> BB["Output Module"]
+    BB --> CC["Generate Results:<br/>- Time series data<br/>- Summary statistics<br/>- Diagnostic plots"]
+    
+    %% User Interface Connections
+    DD["User Parameter Interface"] --> G
+    DD --> I
+    DD --> V
+    DD --> Z
+    
+    %% Database Update Triggers
+    EE["Parameter Change Trigger"] --> FF{"Which Parameter Changed?"}
+    FF -->|Wound correction| I
+    FF -->|Wood properties| V
+    FF -->|QC thresholds| Z
+    FF -->|Basic parameters| G
+    
+    %% Styling
+    classDef database fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef process fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef decision fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef userInput fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
+    classDef output fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    
+    class C,F,K,O,U,Y database
+    class D,E,I,J,L,M,N,Q,R,S,T,V,W,X,Z,AA process
+    class B,P,FF decision
+    class DD,G,H userInput
+    class BB,CC output
